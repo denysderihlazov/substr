@@ -56,6 +56,50 @@ void printHelpInfo()
     printf(HELP_INFO);
 }
 
+void handleLineRead(char *substring, int subStrLen, FILE *f) {
+    int currentChar = 0;
+    int bufferSize = 4 * sizeof(char);
+    char *fbuffer = malloc(bufferSize);
+    //Substr search
+    int subStrMatched = subStrLen;
+    int currentSubStr = 0;
+
+    while(1) {
+
+        if(!fgets(fbuffer + currentChar, bufferSize - currentChar, f)) {
+            perror("Error reading from file");
+            exit(3);
+        }
+
+        while(fbuffer[currentChar]) {
+            // searching for the first substring match
+            if(fbuffer[currentChar] == *(substring + currentSubStr)) {
+                subStrMatched-=1;
+                currentSubStr++;
+                if(subStrMatched == 0) {
+                    printf("Substring found\n");
+                }
+            } else {
+                subStrMatched = subStrLen;
+                currentSubStr = 0;
+            }
+
+            currentChar++;
+
+            if(currentChar >= bufferSize - 1) {
+                bufferSize *= 2;
+                char *temp = realloc(fbuffer, bufferSize);
+                if (temp == NULL) {
+                    free(fbuffer);
+                    exit(1);
+                }
+                fbuffer = temp;
+            }
+        }
+    }
+    free(fbuffer);
+}
+
 int main(int argc, char *argv[])
 {
     char *word;
@@ -66,6 +110,18 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Too few arguments!\n");
         printHelpInfo();
         return 1;
+    }
+
+    if(strcmp(argv[2],"grep") == 0) {
+        word = argv[1];
+        f = stdin;
+        if(!f) {
+            printf("Unable to open stdin\n");
+            exit(2);
+        }
+
+        handleLineRead(word, strLen(word), f);
+        
     }
 
     if(strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
