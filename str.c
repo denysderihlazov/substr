@@ -121,7 +121,6 @@ int main(int argc, char *argv[])
         }
 
         handleLineRead(word, strLen(word), f);
-        
     }
 
     if(strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
