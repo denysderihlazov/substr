@@ -60,9 +60,11 @@ void handleLineRead(char *substring, int subStrLen, FILE *f) {
     int currentChar = 0;
     int bufferSize = 4 * sizeof(char);
     char *fbuffer = malloc(bufferSize);
-    //Substr search
+    // Substr search
     int subStrMatched = subStrLen;
     int currentSubStr = 0;
+    // Grepstyle output
+    int lastNewLinePos = 0;
 
     while(1) {
 
@@ -72,12 +74,17 @@ void handleLineRead(char *substring, int subStrLen, FILE *f) {
         }
 
         while(fbuffer[currentChar]) {
+            if(fbuffer[currentChar] == '\n') {
+                lastNewLinePos = currentChar+1;
+            }
+
             // searching for the first substring match
             if(fbuffer[currentChar] == *(substring + currentSubStr)) {
                 subStrMatched-=1;
                 currentSubStr++;
                 if(subStrMatched == 0) {
-                    printf("Substring found\n");
+                    printf("\nGREP: %.*s\n", currentChar, fbuffer+lastNewLinePos);
+                    exit(4);
                 }
             } else {
                 subStrMatched = subStrLen;
@@ -112,7 +119,21 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if(strcmp(argv[2],"grep") == 0) {
+    if(strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
+        printHelpInfo(); // execute help information
+    } else if (argc == 4 && strcmp(argv[3],"grep") == 0) {
+        word = argv[1]; 
+        fileName = argv[2];
+
+        f = fopen(fileName, "r");
+        if(!f) {
+            perror(fileName);
+            exit(1);
+        }
+        
+        handleLineRead(word, strLen(word), f);
+        fclose(f);
+    } else if (argc == 3 && strcmp(argv[2],"grep") == 0) {
         word = argv[1];
         f = stdin;
         if(!f) {
@@ -121,10 +142,7 @@ int main(int argc, char *argv[])
         }
 
         handleLineRead(word, strLen(word), f);
-    }
-
-    if(strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
-        printHelpInfo(); // execute help information
+        fclose(f);
     } else if (argc == 3) {
         word = argv[1]; 
         fileName = argv[2];
