@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #define HELP_INFO \
 "Usage instructions:\n\n" \
@@ -61,33 +60,36 @@ void handleLineRead(char *substring, int subStrLen, FILE *f) {
     int bufferSize = 4 * sizeof(char);
     char *fbuffer = malloc(bufferSize);
     // Substr search
-    int subStrMatched = subStrLen;
     int currentSubStr = 0;
+    int subStrFound = 0;
     // Grepstyle output
-    int lastNewLinePos = 0;
+    int currentLineStart = 0;
 
     while(1) {
 
-        if(!fgets(fbuffer + currentChar, bufferSize - currentChar, f)) {
-            perror("Error reading from file");
+        if(!fgets(fbuffer + currentChar, bufferSize - currentChar, f)){
+            printf("Error reading from file");
             exit(3);
         }
 
         while(fbuffer[currentChar]) {
             if(fbuffer[currentChar] == '\n') {
-                lastNewLinePos = currentChar+1;
-            }
-
-            // searching for the first substring match
-            if(fbuffer[currentChar] == *(substring + currentSubStr)) {
-                subStrMatched-=1;
-                currentSubStr++;
-                if(subStrMatched == 0) {
-                    printf("\nGREP: %.*s\n", currentChar, fbuffer+lastNewLinePos);
+                // Print grep style line with found substring
+                if(subStrFound){
+                    printf("\n%.*s\n", currentChar - currentLineStart, fbuffer + currentLineStart);
                     exit(4);
                 }
+                currentLineStart  = currentChar + 1;
+                subStrFound = 0;
+            }
+
+            // searching for the first substring match and printing whole line
+            if(fbuffer[currentChar] == substring[currentSubStr]) {
+                currentSubStr++;
+                if (currentSubStr == subStrLen) {
+                    subStrFound = 1;
+                }
             } else {
-                subStrMatched = subStrLen;
                 currentSubStr = 0;
             }
 
@@ -98,13 +100,25 @@ void handleLineRead(char *substring, int subStrLen, FILE *f) {
                 char *temp = realloc(fbuffer, bufferSize);
                 if (temp == NULL) {
                     free(fbuffer);
-                    exit(1);
+                    exit(5);
                 }
                 fbuffer = temp;
             }
         }
     }
     free(fbuffer);
+}
+
+int strCompare(char *str1, char *str2) {
+    int i = 0;
+    while(*(str1+i) != '\0' && *(str2+i) != '\0') {
+        if((int)*(str1+i) == (int)*(str2+i) && (int)*(str1+i+1) == (int)*(str2+i+1)) {
+            i++;
+        } else {
+            return 0;
+        }
+    }
+    return 1; //In contrast to strcmp(), my function returns 1 when strings are identical.
 }
 
 int main(int argc, char *argv[])
@@ -119,26 +133,26 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if(strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
+    if(strCompare(argv[1], "-h") || strCompare(argv[1], "--help")) {
         printHelpInfo(); // execute help information
-    } else if (argc == 4 && strcmp(argv[3],"grep") == 0) {
+    } else if (argc == 4 && strCompare(argv[3],"grep")) {
         word = argv[1]; 
         fileName = argv[2];
 
         f = fopen(fileName, "r");
         if(!f) {
             perror(fileName);
-            exit(1);
+            exit(0);
         }
         
         handleLineRead(word, strLen(word), f);
         fclose(f);
-    } else if (argc == 3 && strcmp(argv[2],"grep") == 0) {
+    } else if (argc == 3 && strCompare(argv[2],"grep")) {
         word = argv[1];
         f = stdin;
         if(!f) {
             printf("Unable to open stdin\n");
-            exit(2);
+            exit(1);
         }
 
         handleLineRead(word, strLen(word), f);
@@ -150,7 +164,7 @@ int main(int argc, char *argv[])
         f = fopen(fileName, "r");
         if(!f) {
             perror(fileName);
-            exit(1);
+            exit(2);
         }
 
         printf("%d\n", searchSubstring(word, strLen(word), f));
